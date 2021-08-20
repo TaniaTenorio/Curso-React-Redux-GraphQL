@@ -1,6 +1,9 @@
 import { createStore, combineReducers, compose, applyMiddleware } from 'redux'
 import userReducer, { restoreSessionAction } from './userDuck'
-import charsReducer, { getCharactersAction } from './charsDuck'
+import charsReducer, {
+  getCharactersAction,
+  restoreFavsAction,
+} from './charsDuck'
 import thunk from 'redux-thunk'
 
 let rootReducer = combineReducers({
@@ -17,5 +20,8 @@ export default function generateStore() {
 
   // fetch user data from local storage if it has already logged in
   restoreSessionAction()(store.dispatch)
+
+  // fetch favorites from local storage is user is logged in
+  restoreFavsAction()(store.dispatch)
   return store
 }

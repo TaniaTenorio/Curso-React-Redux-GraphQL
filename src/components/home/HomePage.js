@@ -1,17 +1,24 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
+import { connect } from 'react-redux'
+import {
+  addToFavoritesAction,
+  removeCharacterAction,
+} from '../../redux/charsDuck'
 import Card from '../card/Card'
 import styles from './home.module.css'
-import { connect } from 'react-redux'
-import { removeCharacterAction } from '../../redux/charsDuck'
 
-function Home({ chars, removeCharacterAction }) {
+function Home({ chars, removeCharacterAction, addToFavoritesAction }) {
   function renderCharacter() {
     let char = chars[0]
-    return <Card leftClick={nextCharacter} {...char} />
+    return <Card leftClick={nextCharacter} rightClick={addFav} {...char} />
   }
 
   function nextCharacter() {
     removeCharacterAction()
+  }
+
+  function addFav() {
+    addToFavoritesAction()
   }
 
   return (
@@ -22,11 +29,15 @@ function Home({ chars, removeCharacterAction }) {
   )
 }
 
-// get the state (store) from redux and add it to the props of this (Home) component
+// get the state (store) from redux
+// and add it to the props of this (Home) component
 function mapState(state) {
   return {
     chars: state.characters.array,
   }
 }
 
-export default connect(mapState, { removeCharacterAction })(Home)
+export default connect(mapState, {
+  removeCharacterAction,
+  addToFavoritesAction,
+})(Home)
