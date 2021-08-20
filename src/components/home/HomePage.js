@@ -29,7 +29,8 @@ function Home({ chars, removeCharacterAction, addToFavoritesAction }) {
   )
 }
 
-// get the state (store) from redux and add it to the props of this (Home) component
+// get the state (store) from redux
+// and add it to the props of this (Home) component
 function mapState(state) {
   return {
     chars: state.characters.array,
