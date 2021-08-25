@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { getFavs, updateDB } from '../firebase'
+import { ApolloClient, gql, InMemoryCache } from '@apollo/client'
 
 // constants
 let initialData = {
@@ -7,8 +8,18 @@ let initialData = {
   array: [],
   current: {},
   favorites: [],
+  nextPage: 1,
 }
-let URL = 'https://rickandmortyapi.com/api/character'
+let URL = 'https://rickandmortyapi.com/api/characters'
+
+let cache = new InMemoryCache({})
+let client = new ApolloClient({
+  cache: cache,
+  uri: 'https://rickandmortyapi.com/graphql',
+})
+
+let UPDATE_PAGE = 'UPDATE_PAGE'
+
 let GET_CHARACTERS = 'GET_CHARACTERS'
 let GET_CHARACTERS_SUCCESS = 'GET_CHARACTERS_SUCCESS'
 let GET_CHARACTERS_ERROR = 'GET_CHARACTERS_ERROR'
@@ -23,6 +34,8 @@ let GET_FAVS_ERROR = 'GET_FAVS_ERROR'
 // reducer
 export default function reducer(state = initialData, action) {
   switch (action.type) {
+    case UPDATE_PAGE:
+      return { ...state, nextPage: action.payload }
     case GET_FAVS:
       return { ...state, fetching: true }
     case GET_FAVS_ERROR:
@@ -98,31 +111,64 @@ export let addToFavoritesAction = () => (dispatch, getState) => {
 
 export let removeCharacterAction = () => (dispatch, getState) => {
   let { array } = getState().characters
-  array.shift()
+  let newArray = [...array]
+  newArray.shift()
+  if (!newArray.length) {
+    getCharactersAction()(dispatch, getState)
+    return
+  }
   dispatch({
     type: REMOVE_CHARACTER,
-    payload: [...array],
+    payload: [...newArray],
   })
 }
 
 export function getCharactersAction() {
   return (dispatch, getState) => {
+    let query = gql`
+      query ($page: Int) {
+        characters(page: $page) {
+          info {
+            count
+            next
+            prev
+          }
+          results {
+            name
+            image
+          }
+        }
+      }
+    `
+
     dispatch({
       type: GET_CHARACTERS,
     })
-    return axios
-      .get(URL)
-      .then((res) => {
+
+    let { nextPage } = getState().characters
+
+    return client
+      .query({
+        query,
+        variables: {
+          page: nextPage,
+        },
+      })
+      .then(({ data, error }) => {
+        if (error) {
+          dispatch({
+            type: GET_CHARACTERS_ERROR,
+            payload: error,
+          })
+          return
+        }
         dispatch({
           type: GET_CHARACTERS_SUCCESS,
-          payload: res.data.results,
+          payload: data.characters.results,
         })
-      })
-      .catch((err) => {
-        console.log(err)
         dispatch({
-          type: GET_CHARACTERS_ERROR,
-          payload: err.response.message,
+          type: UPDATE_PAGE,
+          payload: data.characters.info.next ? data.characters.info.next : 1,
         })
       })
   }
